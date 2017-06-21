@@ -149,6 +149,7 @@ public class SlideGroup extends ViewGroup {
 
         for (int i = 0; i < count; ++i) {
             View v = getChildAt(i);
+            v.setTag(i);
             measureChild(v, widthMeasureSpec, heightMeasureSpec);
             SlideGroupParams lp = (SlideGroupParams) v.getLayoutParams();
             lp.width = cardWidth;
@@ -193,7 +194,7 @@ public class SlideGroup extends ViewGroup {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         int count = getChildCount();
         for (int i = 0; i < count; ++i) {
-            View v = getChildAt(i);
+               View v = getChildAt(i);
                final int childWidth = v.getMeasuredWidth();
                final int childHeight = v.getMeasuredHeight();
                 SlideGroupParams lp = (SlideGroupParams) v.getLayoutParams();
@@ -210,23 +211,31 @@ public class SlideGroup extends ViewGroup {
         this.cardHeight = cardHeight;
     }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        if(disPathEvent!=null) {
-            disPathEvent.onEvent(event);
-        }
-        return true;
-    }
-
-    @Override
-    public void computeScroll() {
-        if(disPathEvent!=null) {
-            disPathEvent.computeScroll();
-        }
-    }
-
-
-
+//    @Override
+//    public boolean onTouchEvent(MotionEvent event) {
+//        super.onTouchEvent(event);
+//        if(disPathEvent!=null) {
+//            disPathEvent.onEvent(event);
+//        }
+//        return true;
+//    }
+//
+//    @Override
+//    public void computeScroll() {
+//        if(disPathEvent!=null) {
+//            disPathEvent.computeScroll();
+//        }
+//    }
+//
+//    @Override
+//    public boolean onInterceptTouchEvent(MotionEvent ev) {
+//        if(disPathEvent!=null) {
+//            return disPathEvent.onInterceptTouchEvent(ev);
+//        }
+//        else {
+//            return super.onInterceptTouchEvent(ev);
+//        }
+//    }
 
     public static class SlideGroupParams extends MarginLayoutParams {
         public int left = 0;
@@ -264,8 +273,9 @@ public class SlideGroup extends ViewGroup {
 
 
     public interface disPathEvent {
-        public void onEvent(MotionEvent event);
-        public void computeScroll();
+         void onEvent(MotionEvent event);
+         boolean onInterceptTouchEvent(MotionEvent event);
+         void computeScroll();
     }
     public void setDisPathEvent(disPathEvent listener) {
         this.disPathEvent = listener;

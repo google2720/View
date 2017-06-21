@@ -30,9 +30,8 @@ public class MainActivity extends Activity {
         // View view = View.inflate(this, R.layout.test, null);
         // myviewpager.addView(view, 1);
 
+
         slideGroup.addView(new MusicCard(this));
-
-
         slideGroup.addView(new NavCard(this));
         slideGroup.addView(new TimeCard(this));
         slideGroup.addView(new TrafficCard(this));

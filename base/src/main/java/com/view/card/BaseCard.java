@@ -2,7 +2,9 @@ package com.view.card;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.FrameLayout;
 
 
@@ -32,6 +34,13 @@ public abstract class BaseCard extends FrameLayout {
     public void init() {
         layoutInflater = LayoutInflater.from(getContext());
         layoutInflater.inflate(getLayoutId(),this,true);
+        setClickable(true);
+        setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d("SlideGroupHelper","tag :" +v.getTag());
+            }
+        });
         setBackgroundResource();
     }
 

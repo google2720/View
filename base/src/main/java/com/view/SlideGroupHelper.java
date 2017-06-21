@@ -4,6 +4,9 @@ import android.content.Context;
 import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewConfiguration;
+import android.view.animation.Interpolator;
 import android.widget.Scroller;
 
 /**
@@ -22,20 +25,78 @@ public class SlideGroupHelper {
     private GestureListener mGestureListener;
     private int mCurrentPage=0;
     private boolean isFling = false;
+    private int mTouchSlop;
 
 
-    public SlideGroupHelper(SlideGroup slideGroup) {
-        this.slideGroup = slideGroup;
-        mContext = slideGroup.getContext();
-        mScroller = new Scroller(mContext);
-        this.slideGroup.setDisPathEvent(disPathEvent);
+    private static class ScrollInterpolator implements Interpolator {
+        public ScrollInterpolator() {
+        }
+
+        public float getInterpolation(float t) {
+            t -= 1.0f;
+            return t*t*t*t*t + 1;
+        }
     }
 
 
+    public SlideGroupHelper(SlideGroup slide) {
+        slideGroup = slide;
+        mContext = slideGroup.getContext();
+        mScroller = new Scroller(mContext,new ScrollInterpolator());
+        slideGroup.setDisPathEvent(disPathEvent);
+        mTouchSlop = ViewConfiguration.getTouchSlop();
+//        int childCount = slideGroup.getChildCount();
+//        for (int i= 0;i<childCount;i++) {
+//            View view = slideGroup.getChildAt(i);
+//            view.setOnClickListener(listener);
+//        }
+    }
+
+
+    private View.OnClickListener listener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+
+        }
+    };
+
+
+    int dnX,endX;
     private SlideGroup.disPathEvent disPathEvent = new SlideGroup.disPathEvent() {
         @Override
         public void onEvent(MotionEvent event) {
             onTouchEvent(event);
+        }
+
+        @Override
+        public boolean onInterceptTouchEvent(MotionEvent ev) {
+            final int action = ev.getAction();
+            if (action == MotionEvent.ACTION_DOWN && ev.getEdgeFlags() != 0) {
+                return false;
+            }
+
+            boolean isIntercept = false;
+            switch (ev.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    isIntercept = !mScroller.isFinished();
+                    dnX = (int) ev.getX();
+                    break;
+
+                case MotionEvent.ACTION_MOVE:
+                    endX = (int) ev.getX();
+                    int disX = Math.abs(endX - dnX);
+                    if (disX > mTouchSlop) {
+                        isIntercept = true;
+                    }
+                    else {
+                        isIntercept = false;
+                    }
+                    break;
+                case MotionEvent.ACTION_UP:
+                    isIntercept = false;
+                    break;
+            }
+            return isIntercept;
         }
 
         @Override
@@ -47,37 +108,26 @@ public class SlideGroupHelper {
         }
     };
 
-    
- 
-
-
-    private void onTouchEvent(MotionEvent event)
-    {
-
+    private void onTouchEvent(MotionEvent event) {
         //使用手势识别器处理滑动作
         if(mGestureDetector==null) {
             mGestureDetector = new GestureDetector(mContext,mGestureListener = new GestureListener());
         }
-
         //抬起动作
         boolean detectedUp = event.getAction() == MotionEvent.ACTION_UP;
         if (!mGestureDetector.onTouchEvent(event) && detectedUp ) {
             mGestureListener. onUp(event);
         }
-
-
     }
-
 
     private class GestureListener implements GestureDetector.OnGestureListener{
 
         @Override
         public boolean onDown(MotionEvent e) {
-
-
-
             downX = (int) e.getX();
             Log("onDown :" + e.getX());
+            if (!mScroller.isFinished())
+                mScroller.abortAnimation();
             return false;
         }
 
@@ -94,9 +144,6 @@ public class SlideGroupHelper {
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-//            Log("onScroll e1 :" + e1.getX());
-//            Log("onScroll e2 :" + e2.getX());
-//            Log("onScroll :" + distanceX);
             scrollBy((int) distanceX);
             return false;
         }
@@ -108,19 +155,23 @@ public class SlideGroupHelper {
 
         @Override
         public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-            Log("onFling :" + e1.getX());
-            isFling = true;
-            if(e1!=null && e2!=null) {
-                if (e1.getX() > e2.getX()) {
-                    moveNext(velocityX);
-                } else {
-                    movePrev(velocityX);
+            //快速滑动时直接下/上一页
+            Log("onFling  velocityX :" + velocityX);
+            if(Math.abs(velocityX)>1500) {
+                isFling = true;
+                if (e1 != null && e2 != null) {
+                    if (e1.getX() > e2.getX()) {
+                        moveNext(velocityX);
+                    } else {
+                        movePrev(velocityX);
+                    }
                 }
             }
             return false;
         }
 
         public boolean onUp(MotionEvent event) {
+            //慢慢滑动时超过每页1/2时直接上/下一页
             upX = (int) event.getX();
             Log("onUp :" + upX);
             if(!isFling) {
@@ -132,12 +183,10 @@ public class SlideGroupHelper {
                     moveCurr(mCurrentPage);
                 }
             }
-
             isFling = false;
             return false;
         }
     }
-
 
 
     private void movePrev() {
@@ -175,20 +224,19 @@ public class SlideGroupHelper {
         if (!mScroller.isFinished()) {
             mScroller.abortAnimation();
         }
-        int duration = (int) (Math.abs(distance) * 1000 / Math.abs(velocityX));
+        int duration;
+        if(velocityX!=0) {
+            duration = 4 * Math.round(1000 * Math.abs(distance / velocityX));
+        }
+        else {
+            duration = Math.abs(distance);
+        }
         mScroller.startScroll(getScrollX(), 0, distance, 0, duration);
         postInvalidate();
     }
 
     private void moveCurr(int page) {
-        int distance = page * pageWidth() - getScrollX();
-        mCurrentPage = page;
-        if (!mScroller.isFinished()) {
-            mScroller.abortAnimation();
-        }
-        int duration = Math.abs(distance);
-        mScroller.startScroll(getScrollX(), 0, distance, 0, duration);
-        postInvalidate();
+        moveCurr(page,0);
     }
 
 

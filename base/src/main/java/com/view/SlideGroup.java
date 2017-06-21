@@ -211,31 +211,31 @@ public class SlideGroup extends ViewGroup {
         this.cardHeight = cardHeight;
     }
 
-//    @Override
-//    public boolean onTouchEvent(MotionEvent event) {
-//        super.onTouchEvent(event);
-//        if(disPathEvent!=null) {
-//            disPathEvent.onEvent(event);
-//        }
-//        return true;
-//    }
-//
-//    @Override
-//    public void computeScroll() {
-//        if(disPathEvent!=null) {
-//            disPathEvent.computeScroll();
-//        }
-//    }
-//
-//    @Override
-//    public boolean onInterceptTouchEvent(MotionEvent ev) {
-//        if(disPathEvent!=null) {
-//            return disPathEvent.onInterceptTouchEvent(ev);
-//        }
-//        else {
-//            return super.onInterceptTouchEvent(ev);
-//        }
-//    }
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        super.onTouchEvent(event);
+        if(disPathEvent!=null) {
+            disPathEvent.onEvent(event);
+        }
+        return true;
+    }
+
+    @Override
+    public void computeScroll() {
+        if(disPathEvent!=null) {
+            disPathEvent.computeScroll();
+        }
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        if(disPathEvent!=null) {
+            return disPathEvent.onInterceptTouchEvent(ev);
+        }
+        else {
+            return super.onInterceptTouchEvent(ev);
+        }
+    }
 
     public static class SlideGroupParams extends MarginLayoutParams {
         public int left = 0;

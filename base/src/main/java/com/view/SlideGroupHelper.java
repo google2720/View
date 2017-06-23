@@ -9,6 +9,8 @@ import android.view.ViewConfiguration;
 import android.view.animation.Interpolator;
 import android.widget.Scroller;
 
+import com.socks.library.KLog;
+
 /**
  * Created by zhangjunjun on 2017/5/28.
  */
@@ -45,16 +47,16 @@ public class SlideGroupHelper {
         mScroller = new Scroller(mContext,new ScrollInterpolator());
         slideGroup.setDisPathEvent(disPathEvent);
         mTouchSlop = ViewConfiguration.getTouchSlop();
-
-
         slideGroup.post(new Runnable() {
             @Override
             public void run() {
                 int childCount = slideGroup.getChildCount();
                 for (int i= 0;i<childCount;i++) {
-                    View view = slideGroup.getChildAt(i);
+                   View view = slideGroup.getChildAt(i);
                     view.setClickable(true);
                     view.setOnClickListener(listener);
+                    view.setLongClickable(true);
+                    view.setOnLongClickListener(longlistener);
                 }
             }
         });
@@ -66,12 +68,21 @@ public class SlideGroupHelper {
     private View.OnClickListener listener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            Log.d("SlideGroupHelper","tag :" +v.getTag());
+            KLog.d("tag :" +v.getTag());
+        }
+    };
+
+    private View.OnLongClickListener longlistener = new View.OnLongClickListener() {
+        @Override
+        public boolean onLongClick(View v) {
+            KLog.d("onLongClick tag :" +v.getTag());
+            return true;
         }
     };
 
 
-    int dnX,endX;
+
+    int interceptX, interceptEndX;
     private SlideGroup.disPathEvent disPathEvent = new SlideGroup.disPathEvent() {
         @Override
         public void onEvent(MotionEvent event) {
@@ -80,29 +91,34 @@ public class SlideGroupHelper {
 
         @Override
         public boolean onInterceptTouchEvent(MotionEvent ev) {
-
-            Log.d("SlideGroupHelper","ev :" +TouchEventUtil.getTouchAction(ev.getAction()));
-
+            if(mGestureDetector==null) {
+                mGestureDetector = new GestureDetector(mContext,mGestureListener = new GestureListener());
+            }
+            mGestureDetector.onTouchEvent(ev);
             boolean isIntercept = false;
             switch (ev.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     isIntercept = !mScroller.isFinished();
-                    dnX = (int) ev.getX();
+                    interceptX = (int) ev.getX();
                     break;
 
                 case MotionEvent.ACTION_MOVE:
-                    endX = (int) ev.getX();
-                    int disX = Math.abs(endX - dnX);
-                    if (disX > mTouchSlop) {
+                    interceptEndX = (int) ev.getX();
+                    int disX = Math.abs(interceptEndX - interceptX);
+                    if (disX >= mTouchSlop) {
                         isIntercept = true;
                     }
                     else {
                         isIntercept = false;
                     }
+
                     break;
+
+                case MotionEvent.ACTION_CANCEL:
                 case MotionEvent.ACTION_UP:
                     isIntercept = false;
                     break;
+
             }
             return isIntercept;
         }
@@ -115,6 +131,7 @@ public class SlideGroupHelper {
             }
         }
     };
+
 
     private void onTouchEvent(MotionEvent event) {
         //使用手势识别器处理滑动作
@@ -133,7 +150,6 @@ public class SlideGroupHelper {
         @Override
         public boolean onDown(MotionEvent e) {
             downX = (int) e.getX();
-           // Log("onDown :" + e.getX());
             if (!mScroller.isFinished())
                 mScroller.abortAnimation();
             return false;
@@ -141,12 +157,10 @@ public class SlideGroupHelper {
 
         @Override
         public void onShowPress(MotionEvent e) {
-            //Log("onShowPress :" + e.getX());
         }
 
         @Override
         public boolean onSingleTapUp(MotionEvent e) {
-            //Log("onSingleTapUp :" + e.getX());
             return false;
         }
 
@@ -158,7 +172,6 @@ public class SlideGroupHelper {
 
         @Override
         public void onLongPress(MotionEvent e) {
-           // Log("onLongPress :" + e.getX());
         }
 
         @Override
@@ -181,7 +194,6 @@ public class SlideGroupHelper {
         public boolean onUp(MotionEvent event) {
             //慢慢滑动时超过每页1/2时直接上/下一页
             upX = (int) event.getX();
-            Log("onUp :" + upX);
             if(!isFling) {
                 if (downX - upX > pageWidth() / 2) {
                     moveNext();

@@ -213,7 +213,6 @@ public class SlideGroup extends ViewGroup {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        super.onTouchEvent(event);
         if(disPathEvent!=null) {
             disPathEvent.onEvent(event);
         }

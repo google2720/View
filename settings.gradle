@@ -1,1 +1,1 @@
-include ':lanucher', ':base', ':TouchEventTest'
+include ':lanucher', ':base', ':TouchEventTest', ':dragdemo'

@@ -84,7 +84,8 @@ public class SlideGroupHelper {
     }
 
 
-
+    boolean isSwap=false;
+    int firstLocation;
     public  void setupDragSort(View view) {
         view.setOnDragListener(new View.OnDragListener() {
             @Override
@@ -94,49 +95,77 @@ public class SlideGroupHelper {
                 switch (event.getAction()) {
                     // 开始拖拽
                     case DragEvent.ACTION_DRAG_STARTED:
+                        Log.d(TAG,"tag: "+view.getTag() +"  STARTED");
+
                         if (view == dragState.view) {
+
+                            if(moveRunnable==null) {
+                                moveRunnable = new MoveRunnable();
+                            }
+                            moveRunnable.setDrag(true);
+                            moveRunnable.setDragView(dragState.view);
+                            slideGroup.post(moveRunnable);
+
                             view.setVisibility(View.INVISIBLE);
                         }
                         break;
                     // 结束拖拽
                     case DragEvent.ACTION_DRAG_ENDED:
+                       // Log.d(TAG,"tag: "+view.getTag() +"  ENDED");
                         if (view == dragState.view) {
                             view.setVisibility(View.VISIBLE);
+                            moveRunnable.setDrag(false);
                         }
                         break;
 
                     // 拖拽进某个控件后，退出
                     case DragEvent.ACTION_DRAG_EXITED:
-
+                      //  Log.d(TAG,"tag: "+view.getTag() +"  EXITED");
                         break;
+
                     // 拖拽进某个控件后，保持
                     case DragEvent.ACTION_DRAG_LOCATION: {
-                        if (view == dragState.view){
-                            break;
-                        }
-                        int index = viewGroup.indexOfChild(view);
-                        if (   (index > dragState.index && event.getY() > view.getHeight() / 2)
-                            || (index < dragState.index && event.getY() < view.getHeight() / 2)
 
-                            || (index < dragState.index && event.getX() < view.getWidth() / 2)
-                            || (index < dragState.index && event.getX() < view.getWidth() / 2)
-                                )
-                        {
-                            swapViews(viewGroup, view, index, dragState);
-                        } else {
-                            swapViewsBetweenIfNeeded(viewGroup, index, dragState);
+                        if(firstLocation!=(int) view.getTag()) {
+                            Log.d(TAG, "tag: " + view.getTag() + "  LOCATION");
+                            //  Log.d(TAG,"dragState.view tag: "+dragState.view +"  LOCATION");
+
+                            if (!isSwap && view != dragState.view) {
+                                isSwap = true;
+                                swapViewGroupChildren(viewGroup, view, dragState.view);
+                            }
                         }
+                        firstLocation = (int) view.getTag();
+//                        if (view == dragState.view){
+//                            break;
+//                        }
+//                        int index = viewGroup.indexOfChild(view);
+//                        if (   (index > dragState.index && event.getY() > view.getHeight() / 2)
+//                            || (index < dragState.index && event.getY() < view.getHeight() / 2)
+//
+//                            || (index < dragState.index && event.getX() < view.getWidth() / 2)
+//                            || (index < dragState.index && event.getX() < view.getWidth() / 2)
+//                                )
+//                        {
+//                            swapViews(viewGroup, view, index, dragState);
+//                        } else {
+//                            swapViewsBetweenIfNeeded(viewGroup, index, dragState);
+//                        }
                         break;
                     }
 
                     // 推拽进入某个控件
                     case DragEvent.ACTION_DRAG_ENTERED:
-
+                      //  Log.d(TAG,"tag: "+view.getTag() +"  ENTERED");
+                        isSwap = false;
                         break;
 
+                    // 推拽进入某个控件，后在该控件内，释放。即把推拽控件放入另一个控件
                     case DragEvent.ACTION_DROP:
+                       Log.d(TAG,"tag: "+view.getTag() +"  DROP");
+
                         if (view != dragView) {
-                         //   swapViewGroupChildren(viewGroup, view, dragState.view);
+                           // swapViewGroupChildren(viewGroup, view, dragState.view);
                         }
                         break;
                 }
@@ -151,6 +180,44 @@ public class SlideGroupHelper {
             }
         });
     }
+
+    MoveRunnable moveRunnable;
+    boolean isDragAutoScroll = false;
+
+    class MoveRunnable implements Runnable{
+
+        View view;
+        boolean isDrag;
+        public void setDragView(View view) {
+            this.view = view;
+        }
+
+        public void setDrag(boolean drag) {
+            isDrag = drag;
+        }
+
+        @Override
+        public void run() {
+            Log.d(TAG,"drag View x:"+view.getX() + " drag View Y:"+view.getY());
+
+            if(!isDragAutoScroll) {
+                if (view.getX() > 750) {
+                    moveNext();
+                    isDragAutoScroll = true;
+                } else if (view.getX() < 20) {
+                    movePrev();
+                    isDragAutoScroll = true;
+                }
+                if(isDrag) {
+                    view.postDelayed(moveRunnable,500);
+                }
+            }
+
+
+
+        }
+    }
+
 
 
     private  void swapViewsBetweenIfNeeded(ViewGroup viewGroup, int index,
@@ -174,9 +241,10 @@ public class SlideGroupHelper {
 
 
     public  void swapViewGroupChildren(ViewGroup viewGroup, View firstView, View secondView) {
-
         int firstIndex = viewGroup.indexOfChild(firstView);
         int secondIndex = viewGroup.indexOfChild(secondView);
+        Log.d(TAG,"firstIndex: "+firstIndex +"  secondIndex : "+secondIndex);
+
         if (firstIndex < secondIndex) {
             viewGroup.removeViewAt(secondIndex);
             viewGroup.removeViewAt(firstIndex);
@@ -277,6 +345,9 @@ public class SlideGroupHelper {
 
                 case MotionEvent.ACTION_MOVE:
                     interceptEndX = (int) ev.getX();
+
+                    Log.d(TAG,"interceptEndX x:"+interceptEndX);
+
                     int disX = Math.abs(interceptEndX - interceptX);
                     if (disX >= mTouchSlop) {
                         isIntercept = true;
@@ -301,6 +372,8 @@ public class SlideGroupHelper {
             if (computeScrollOffset()) {
                 scrollTo();
                 postInvalidate();
+            } else {
+                isDragAutoScroll = false;
             }
         }
     };

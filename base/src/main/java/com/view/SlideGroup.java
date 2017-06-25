@@ -51,7 +51,7 @@ public class SlideGroup extends ViewGroup {
     /**
      * 每页行数
      */
-    int pageLine = 1;
+    int pageLine = 2;
 
     /**
      * 每页卡片数

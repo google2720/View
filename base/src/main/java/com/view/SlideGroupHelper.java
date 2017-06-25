@@ -29,10 +29,35 @@ public class SlideGroupHelper {
     private GestureDetector mGestureDetector;
     private GestureListener mGestureListener;
     private int mCurrentPage = 0;
+    /**
+     * 快速滑动标记
+     */
     private boolean isFling = false;
+    /**
+     * 最小滑动距离
+     */
     private int mTouchSlop;
+    /**
+     * 拖拽中是否正在自动滑动下一页
+     */
     boolean isDragAutoScroll = false;
+    /**
+     * 交换动画完成标记
+     */
+    boolean swapViewGroupChildren=true;
+    /**
+     * 布局交换动画
+     */
     private LayoutTransition mLayoutTransition;
+
+    /**
+     * 松手交换完成标记
+     */
+    boolean isSwap=false;
+    /**
+     * 第一次按下位置
+     */
+    int firstLocation;
 
 
     private static class ScrollInterpolator implements Interpolator {
@@ -74,13 +99,29 @@ public class SlideGroupHelper {
                 mLayoutTransition.enableTransitionType(LayoutTransition.CHANGE_APPEARING);
                 mLayoutTransition.enableTransitionType(LayoutTransition.CHANGE_DISAPPEARING);
                 slideGroup.setLayoutTransition(mLayoutTransition);
+                mLayoutTransition.addTransitionListener(new LayoutTransition.TransitionListener() {
+                    @Override
+                    public void startTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
+                    }
+
+                    @Override
+                    public void endTransition(LayoutTransition transition, ViewGroup container, View view, int transitionType) {
+                        swapViewGroupChildren = true;
+                    }
+                });
             }
         });
     }
 
 
-    boolean isSwap=false;
-    int firstLocation;
+    private View.OnClickListener listener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            KLog.d("tag :" + v.getTag());
+        }
+    };
+
+
     public  void setupDragSort(View view) {
         view.setOnDragListener(new View.OnDragListener() {
             @Override
@@ -97,7 +138,7 @@ public class SlideGroupHelper {
                         break;
                     // 结束拖拽
                     case DragEvent.ACTION_DRAG_ENDED:
-                       // Log.d(TAG,"tag: "+view.getTag() +"  ENDED");
+                       //Log.d(TAG,"tag: "+view.getTag() +"  ENDED");
                         if (view == dragState.view) {
                             view.setVisibility(View.VISIBLE);
                         }
@@ -105,21 +146,22 @@ public class SlideGroupHelper {
 
                     // 拖拽进某个控件后，退出
                     case DragEvent.ACTION_DRAG_EXITED:
-                      //  Log.d(TAG,"tag: "+view.getTag() +"  EXITED");
+                      //Log.d(TAG,"tag: "+view.getTag() +"  EXITED");
                         break;
 
                     // 拖拽进某个控件后，保持
                     case DragEvent.ACTION_DRAG_LOCATION: {
-
-                        if(firstLocation!=(int) view.getTag() && !isDragAutoScroll) {
-                            //  Log.d(TAG, "tag: " + view.getTag() + "  LOCATION");
-                            //  Log.d(TAG,"dragState.view tag: "+dragState.view +"  LOCATION");
+                     //Log.d(TAG, "tag: " + view.getTag() + "  LOCATION");
+                        if(firstLocation!=(int) view.getTag() && !isDragAutoScroll && swapViewGroupChildren) {
+                              //Log.d(TAG, "tag: " + view.getTag() + "  LOCATION");
+                              //Log.d(TAG,"dragState.view tag: "+dragState.view +"  LOCATION");
                             if (!isSwap && view != dragState.view) {
                                 isSwap = true;
                                 swapViewGroupChildren(viewGroup, view, dragState.view);
                             }
+                            firstLocation = (int) view.getTag();
                         }
-                        firstLocation = (int) view.getTag();
+
                         break;
                     }
 
@@ -150,24 +192,26 @@ public class SlideGroupHelper {
 
 
 
+
     public  void swapViewGroupChildren(ViewGroup viewGroup, View firstView, View secondView) {
         int firstIndex = viewGroup.indexOfChild(firstView);
         int secondIndex = viewGroup.indexOfChild(secondView);
-        Log.d(TAG,"firstIndex: "+firstIndex +"  secondIndex : "+secondIndex);
-
-        if (firstIndex < secondIndex) {
-            viewGroup.removeViewAt(secondIndex);
-            viewGroup.removeViewAt(firstIndex);
-            viewGroup.addView(secondView, firstIndex);
-            viewGroup.addView(firstView, secondIndex);
-        } else {
-            viewGroup.removeViewAt(firstIndex);
-            viewGroup.removeViewAt(secondIndex);
-            viewGroup.addView(firstView, secondIndex);
-            viewGroup.addView(secondView, firstIndex);
-        }
-
-
+        swapViewGroupChildren =false;
+        viewGroup.removeView(secondView);
+        viewGroup.addView(secondView, firstIndex);
+// 直接交换两个view 这样在一页时，动画生硬
+//        Log.d(TAG,"firstIndex: "+firstIndex +"  secondIndex : "+secondIndex);
+//        if (firstIndex < secondIndex) {
+//            viewGroup.removeViewAt(secondIndex);
+//            viewGroup.removeViewAt(firstIndex);
+//            viewGroup.addView(secondView, firstIndex);
+//            viewGroup.addView(firstView, secondIndex);
+//        } else {
+//            viewGroup.removeViewAt(firstIndex);
+//            viewGroup.removeViewAt(secondIndex);
+//            viewGroup.addView(firstView, secondIndex);
+//            viewGroup.addView(secondView, firstIndex);
+//        }
     }
 
 
@@ -182,35 +226,20 @@ public class SlideGroupHelper {
 
 
 
-
-    private View.OnClickListener listener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            KLog.d("tag :" + v.getTag());
-        }
-    };
-
-
-
-
-
-
-
-
     int interceptX, interceptEndX;
     private SlideGroup.disPathEvent disPathEvent = new SlideGroup.disPathEvent() {
 
         @Override
         public void dispatchDragEvent(DragEvent event) {
-            Log.d(TAG,"drag View x:"+event.getX() + " drag View Y:"+event.getY());
-            Log.d(TAG,"drag View mCurrentPage:"+slideGroup.pageWidth*(mCurrentPage+1));
+           // Log.d(TAG,"drag View x:"+event.getX() + " drag View Y:"+event.getY());
+           // Log.d(TAG,"drag View mCurrentPage:"+slideGroup.pageWidth*(mCurrentPage+1));
 
             if(!isDragAutoScroll) {
                 if (event.getX() > slideGroup.pageWidth - 100) {
                     moveNext();
                     isDragAutoScroll = true;
                 }
-                 else if (event.getX() < 20) {
+                 else if (event.getX() < 20 && event.getX()>0) {
                     movePrev();
                     isDragAutoScroll = true;
                }
@@ -237,6 +266,7 @@ public class SlideGroupHelper {
                     break;
 
                 case MotionEvent.ACTION_MOVE:
+                    //如果不是滑动，则交事件交给onClick处理
                     interceptEndX = (int) ev.getX();
                     int disX = Math.abs(interceptEndX - interceptX);
                     if (disX >= mTouchSlop) {
@@ -250,7 +280,6 @@ public class SlideGroupHelper {
                 case MotionEvent.ACTION_CANCEL:
                 case MotionEvent.ACTION_UP:
                     isIntercept = false;
-                   // handleDragUp();
                     break;
 
             }

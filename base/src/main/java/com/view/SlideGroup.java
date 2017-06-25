@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.DragEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -50,7 +51,7 @@ public class SlideGroup extends ViewGroup {
     /**
      * 每页行数
      */
-    int pageLine = 2;
+    int pageLine = 1;
 
     /**
      * 每页卡片数
@@ -219,6 +220,13 @@ public class SlideGroup extends ViewGroup {
         return true;
     }
 
+
+
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        //Log.d(TAG,"dispatchTouchEvent:"+ev.getX());
+        return  super.dispatchTouchEvent(ev);
+    }
+
     @Override
     public void computeScroll() {
         if(disPathEvent!=null) {
@@ -235,6 +243,14 @@ public class SlideGroup extends ViewGroup {
             return super.onInterceptTouchEvent(ev);
         }
     }
+
+    public boolean dispatchDragEvent(DragEvent event) {
+        if(disPathEvent!=null) {
+             disPathEvent.dispatchDragEvent(event);
+        }
+        return super.dispatchDragEvent(event);
+    }
+
 
     public static class SlideGroupParams extends MarginLayoutParams {
         public int left = 0;
@@ -271,9 +287,11 @@ public class SlideGroup extends ViewGroup {
     }
 
 
+
     public interface disPathEvent {
          void onEvent(MotionEvent event);
          boolean onInterceptTouchEvent(MotionEvent event);
+         void dispatchDragEvent(DragEvent event);
          void computeScroll();
     }
     public void setDisPathEvent(disPathEvent listener) {

@@ -2,19 +2,14 @@ package com.view;
 
 import android.animation.LayoutTransition;
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.PixelFormat;
 import android.util.Log;
 import android.view.DragEvent;
 import android.view.GestureDetector;
-import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.view.animation.Interpolator;
-import android.widget.ImageView;
 import android.widget.Scroller;
 
 import com.socks.library.KLog;
@@ -36,6 +31,7 @@ public class SlideGroupHelper {
     private int mCurrentPage = 0;
     private boolean isFling = false;
     private int mTouchSlop;
+    boolean isDragAutoScroll = false;
     private LayoutTransition mLayoutTransition;
 
 
@@ -65,7 +61,6 @@ public class SlideGroupHelper {
                     view.setClickable(true);
                     view.setOnClickListener(listener);
                     view.setLongClickable(true);
-                   // view.setOnLongClickListener(longListener);
                     setupDragSort(view);
                 }
 
@@ -74,7 +69,7 @@ public class SlideGroupHelper {
                 mLayoutTransition.disableTransitionType(LayoutTransition.APPEARING);
                 mLayoutTransition.disableTransitionType(LayoutTransition.DISAPPEARING);
                 //add和remove的其余动画效果
-                // mLayoutTransition.enableTransitionType(LayoutTransition.CHANGING);
+                //mLayoutTransition.enableTransitionType(LayoutTransition.CHANGING);
                 //加入导致被影响的其余child做的动画，默认是移动，即被挤开。
                 mLayoutTransition.enableTransitionType(LayoutTransition.CHANGE_APPEARING);
                 mLayoutTransition.enableTransitionType(LayoutTransition.CHANGE_DISAPPEARING);
@@ -95,17 +90,8 @@ public class SlideGroupHelper {
                 switch (event.getAction()) {
                     // 开始拖拽
                     case DragEvent.ACTION_DRAG_STARTED:
-                        Log.d(TAG,"tag: "+view.getTag() +"  STARTED");
-
+                        //Log.d(TAG,"tag: "+view.getTag() +"  STARTED");
                         if (view == dragState.view) {
-
-                            if(moveRunnable==null) {
-                                moveRunnable = new MoveRunnable();
-                            }
-                            moveRunnable.setDrag(true);
-                            moveRunnable.setDragView(dragState.view);
-                            slideGroup.post(moveRunnable);
-
                             view.setVisibility(View.INVISIBLE);
                         }
                         break;
@@ -114,7 +100,6 @@ public class SlideGroupHelper {
                        // Log.d(TAG,"tag: "+view.getTag() +"  ENDED");
                         if (view == dragState.view) {
                             view.setVisibility(View.VISIBLE);
-                            moveRunnable.setDrag(false);
                         }
                         break;
 
@@ -126,47 +111,27 @@ public class SlideGroupHelper {
                     // 拖拽进某个控件后，保持
                     case DragEvent.ACTION_DRAG_LOCATION: {
 
-                        if(firstLocation!=(int) view.getTag()) {
-                            Log.d(TAG, "tag: " + view.getTag() + "  LOCATION");
+                        if(firstLocation!=(int) view.getTag() && !isDragAutoScroll) {
+                            //  Log.d(TAG, "tag: " + view.getTag() + "  LOCATION");
                             //  Log.d(TAG,"dragState.view tag: "+dragState.view +"  LOCATION");
-
                             if (!isSwap && view != dragState.view) {
                                 isSwap = true;
                                 swapViewGroupChildren(viewGroup, view, dragState.view);
                             }
                         }
                         firstLocation = (int) view.getTag();
-//                        if (view == dragState.view){
-//                            break;
-//                        }
-//                        int index = viewGroup.indexOfChild(view);
-//                        if (   (index > dragState.index && event.getY() > view.getHeight() / 2)
-//                            || (index < dragState.index && event.getY() < view.getHeight() / 2)
-//
-//                            || (index < dragState.index && event.getX() < view.getWidth() / 2)
-//                            || (index < dragState.index && event.getX() < view.getWidth() / 2)
-//                                )
-//                        {
-//                            swapViews(viewGroup, view, index, dragState);
-//                        } else {
-//                            swapViewsBetweenIfNeeded(viewGroup, index, dragState);
-//                        }
                         break;
                     }
 
                     // 推拽进入某个控件
                     case DragEvent.ACTION_DRAG_ENTERED:
-                      //  Log.d(TAG,"tag: "+view.getTag() +"  ENTERED");
+                      //Log.d(TAG,"tag: "+view.getTag() +"  ENTERED");
                         isSwap = false;
                         break;
 
                     // 推拽进入某个控件，后在该控件内，释放。即把推拽控件放入另一个控件
                     case DragEvent.ACTION_DROP:
-                       Log.d(TAG,"tag: "+view.getTag() +"  DROP");
 
-                        if (view != dragView) {
-                           // swapViewGroupChildren(viewGroup, view, dragState.view);
-                        }
                         break;
                 }
                 return true;
@@ -175,69 +140,14 @@ public class SlideGroupHelper {
         view.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
-                    view.startDrag(null, new View.DragShadowBuilder(view), new DragState(view), 0);
+                view.startDrag(null, new View.DragShadowBuilder(view), new DragState(view), 0);
                 return true;
             }
         });
     }
 
-    MoveRunnable moveRunnable;
-    boolean isDragAutoScroll = false;
-
-    class MoveRunnable implements Runnable{
-
-        View view;
-        boolean isDrag;
-        public void setDragView(View view) {
-            this.view = view;
-        }
-
-        public void setDrag(boolean drag) {
-            isDrag = drag;
-        }
-
-        @Override
-        public void run() {
-            Log.d(TAG,"drag View x:"+view.getX() + " drag View Y:"+view.getY());
-
-            if(!isDragAutoScroll) {
-                if (view.getX() > 750) {
-                    moveNext();
-                    isDragAutoScroll = true;
-                } else if (view.getX() < 20) {
-                    movePrev();
-                    isDragAutoScroll = true;
-                }
-                if(isDrag) {
-                    view.postDelayed(moveRunnable,500);
-                }
-            }
 
 
-
-        }
-    }
-
-
-
-    private  void swapViewsBetweenIfNeeded(ViewGroup viewGroup, int index,
-                                                 DragState dragState) {
-        if (index - dragState.index > 1) {
-            int indexAbove = index - 1;
-            swapViews(viewGroup, viewGroup.getChildAt(indexAbove), indexAbove, dragState);
-        } else if (dragState.index - index > 1) {
-            int indexBelow = index + 1;
-            swapViews(viewGroup, viewGroup.getChildAt(indexBelow), indexBelow, dragState);
-        }
-    }
-
-
-    private  void swapViews(ViewGroup viewGroup, final View view, int index,
-                                  DragState dragState) {
-        swapViewsBetweenIfNeeded(viewGroup, index, dragState);
-        swapViewGroupChildren(viewGroup, view, dragState.view);
-        dragState.index = index;
-    }
 
 
     public  void swapViewGroupChildren(ViewGroup viewGroup, View firstView, View secondView) {
@@ -281,50 +191,33 @@ public class SlideGroupHelper {
     };
 
 
-    private View.OnLongClickListener longListener = new View.OnLongClickListener() {
-        @Override
-        public boolean onLongClick(View v) {
-            KLog.d("onLongClick tag :" + v.getTag());
-            KLog.d("long view  x : " + v.getX() + " --" + " y : " + v.getY());
-            handleDragDown(v);
-            return true;
-        }
-    };
 
 
 
-    private void handleDragDown(View v) {
-        isDrag = true;
-        dragView = v;
-        //开启mDragItemView绘图缓存
-        dragView.setDrawingCacheEnabled(true);
-        //获取mDragItemView在缓存中的Bitmap对象
-        Bitmap mDragBitmap = Bitmap.createBitmap(dragView.getDrawingCache());
-        //释放绘图缓存，避免出现重复的镜像
-        dragView.destroyDrawingCache();
-        createDragImage(mDragBitmap, (int) dragView.getX(), (int) dragView.getY());
-        dragView.setVisibility(View.INVISIBLE);
-    }
-
-    public void handleDragUp(){
-        dragView.setVisibility(View.VISIBLE);
-        removeDragImage();
-        isDrag = false;
-    }
-
-
-    public void handleDragMove(int moveX, int moveY) {
-        if(dragView!=null) {
-            mWindowLayoutParams.x = moveX;
-            mWindowLayoutParams.y = moveY;
-            mWindowManager.updateViewLayout(mDragImageView, mWindowLayoutParams);
-        }
-    }
 
 
 
     int interceptX, interceptEndX;
     private SlideGroup.disPathEvent disPathEvent = new SlideGroup.disPathEvent() {
+
+        @Override
+        public void dispatchDragEvent(DragEvent event) {
+            Log.d(TAG,"drag View x:"+event.getX() + " drag View Y:"+event.getY());
+            Log.d(TAG,"drag View mCurrentPage:"+slideGroup.pageWidth*(mCurrentPage+1));
+
+            if(!isDragAutoScroll) {
+                if (event.getX() > slideGroup.pageWidth - 100) {
+                    moveNext();
+                    isDragAutoScroll = true;
+                }
+                 else if (event.getX() < 20) {
+                    movePrev();
+                    isDragAutoScroll = true;
+               }
+            }
+        }
+
+
         @Override
         public void onEvent(MotionEvent event) {
             onTouchEvent(event);
@@ -345,9 +238,6 @@ public class SlideGroupHelper {
 
                 case MotionEvent.ACTION_MOVE:
                     interceptEndX = (int) ev.getX();
-
-                    Log.d(TAG,"interceptEndX x:"+interceptEndX);
-
                     int disX = Math.abs(interceptEndX - interceptX);
                     if (disX >= mTouchSlop) {
                         isIntercept = true;
@@ -366,6 +256,7 @@ public class SlideGroupHelper {
             }
             return isIntercept;
         }
+
 
         @Override
         public void computeScroll() {
@@ -412,11 +303,7 @@ public class SlideGroupHelper {
 
         @Override
         public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-            if(!isDrag) {
                 scrollBy((int) distanceX);
-            }else {
-                handleDragMove((int)e2.getX(),(int) e2.getY());
-            }
             return false;
         }
 
@@ -541,53 +428,6 @@ public class SlideGroupHelper {
         return slideGroup.getScrollX();
     }
 
-
-
-
-
-
-
-    private boolean isDrag;
-    private View dragView;
-    private WindowManager.LayoutParams mWindowLayoutParams;
-    private ImageView mDragImageView;
-    private WindowManager mWindowManager;
-
-    /**
-     * 创建拖动的镜像
-     * @param bitmap
-     * @param downX  按下的点相对父控件的X坐标
-     * @param downY  按下的点相对父控件的X坐标
-     */
-    private void createDragImage(Bitmap bitmap, int downX, int downY) {
-        if(mWindowLayoutParams==null) {
-            mWindowLayoutParams = new WindowManager.LayoutParams();
-        }
-        mWindowLayoutParams.format = PixelFormat.TRANSLUCENT; //图片之外的其他地方透明
-        mWindowLayoutParams.gravity = Gravity.TOP | Gravity.LEFT;
-        mWindowLayoutParams.x = downX;
-        mWindowLayoutParams.y = downY;
-        mWindowLayoutParams.alpha = 0.65f; //透明度
-        mWindowLayoutParams.width = bitmap.getWidth();
-        mWindowLayoutParams.height = bitmap.getHeight();
-        mWindowLayoutParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
-
-        mDragImageView = new ImageView(mContext);
-        mDragImageView.setImageBitmap(bitmap);
-        if(mWindowManager==null) {
-            mWindowManager = (WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE);
-        }
-        mWindowManager.addView(mDragImageView, mWindowLayoutParams);
-    }
-
-
-    private void removeDragImage() {
-        if (mDragImageView != null) {
-            mWindowManager.removeView(mDragImageView);
-            mDragImageView = null;
-        }
-    }
 
     private void Log(String info) {
         if(BuildConfig.DEBUG) {

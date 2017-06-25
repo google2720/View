@@ -35,10 +35,17 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             }
         });
+
+
         image.setOnDragListener(new OnDragListener() {
             @Override
             public boolean onDrag(View v, DragEvent event) {
                 final int action = event.getAction();
+
+                Log.d(TAG, "image1 v event:"+ event.getX());
+
+               // Log.d(TAG, "ionDrag");
+
                 switch (action) {
                     // 开始拖拽
                     case DragEvent.ACTION_DRAG_STARTED:
@@ -56,7 +63,9 @@ public class MainActivity extends AppCompatActivity {
                         break;
                     // 拖拽进某个控件后，保持
                     case DragEvent.ACTION_DRAG_LOCATION:
-                        Log.d(TAG, "image1 ACTION_DRAG_LOCATION");
+                       // Log.d(TAG, "image1 v getX:"+v.getX());
+                        //Log.d(TAG, "image1 v getPivotX :"+v.getPivotX());
+                       // Log.d(TAG, "image1 ACTION_DRAG_LOCATION");
                         break;
                     // 推拽进入某个控件
                     case DragEvent.ACTION_DRAG_ENTERED:

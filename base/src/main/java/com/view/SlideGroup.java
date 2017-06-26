@@ -9,6 +9,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
+import java.util.ArrayList;
+
 /**
  * Created by zhangjunjun on 2017/5/28.
  */
@@ -56,7 +58,7 @@ public class SlideGroup extends ViewGroup {
     /**
      * 每页卡片数
      */
-    int pageNumber = pageLine*pageRow;
+    int pageNumber = pageLine * pageRow;
 
     /**
      * 列间隔
@@ -75,6 +77,12 @@ public class SlideGroup extends ViewGroup {
 
     private disPathEvent disPathEvent;
 
+    /**
+     * 页码指示器相关
+     */
+    private int mPageIndicatorViewId;
+    public PageIndicator mPageIndicator;
+    public boolean mAllowPagedViewAnimations = true;
 
     public SlideGroup(Context context) {
         this(context, null);
@@ -88,16 +96,17 @@ public class SlideGroup extends ViewGroup {
     public SlideGroup(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         final TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.SlideGroup);
+        mPageIndicatorViewId = a.getResourceId(R.styleable.SlideGroup_DragPageIndicator, -1);
         setCardWidth(240);
         setCardHeight(392);
+        new SlideGroupHelper(this);
     }
 
 
+    int measurePageIndex = 0;
+    int measureLineIndex = 0;
+    int measureRowIndex = 0;
 
-
-    int measurePageIndex=0;
-    int measureLineIndex=0;
-    int measureRowIndex=0;
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 
@@ -129,9 +138,9 @@ public class SlideGroup extends ViewGroup {
             lineSpace = 0;
         } else {
             //页面高度  -  页所有卡片总高度 / 间隔数 = 间隔宽度
-            if(pageLine>1) {
+            if (pageLine > 1) {
                 lineSpace = (pageHeight - cardHeight * pageLine) / (pageLine + 1);
-            }else {
+            } else {
                 lineSpace = 0;
             }
         }
@@ -150,7 +159,8 @@ public class SlideGroup extends ViewGroup {
 
         for (int i = 0; i < count; ++i) {
             View v = getChildAt(i);
-            v.setTag(i);
+            v.setId(i);
+            v.setTag(v.getClass().getSimpleName());
             measureChild(v, widthMeasureSpec, heightMeasureSpec);
             SlideGroupParams lp = (SlideGroupParams) v.getLayoutParams();
             lp.width = cardWidth;
@@ -170,36 +180,69 @@ public class SlideGroup extends ViewGroup {
             //Log.d(TAG, "第几页: " + measurePageIndex);
             //Log.d(TAG, "第几列: " + measureRowIndex);
 
-            if(i% pageRow ==0) {
-                lp.left = measurePageIndex*pageWidth+ rowSpace;
-            }
-            else
-            {//其它卡片的左间隔 ,用前一个view的left,可消除累积误差
-                View prev = getChildAt(i-1);
+            if (i % pageRow == 0) {
+                lp.left = measurePageIndex * pageWidth + rowSpace;
+            } else {//其它卡片的左间隔 ,用前一个view的left,可消除累积误差
+                View prev = getChildAt(i - 1);
                 SlideGroupParams prevParams = (SlideGroupParams) prev.getLayoutParams();
-                lp.left = prevParams.left +cardWidth+ rowSpace;
+                lp.left = prevParams.left + cardWidth + rowSpace;
             }
 
-            lp.top =  measureLineIndex*cardHeight + lineSpace;
+            lp.top = measureLineIndex * cardHeight + lineSpace;
         }
 
         //高度
-        pageHeight = pageLine*(cardHeight+lineSpace);
+        pageHeight = pageLine * (cardHeight + lineSpace);
         //总容器的宽度
         totalWidth = pageWidth * totalPage;
-        Log.d(TAG, "pageHeight: " + pageHeight  + " totalWidth: " + totalWidth);
+        Log.d(TAG, "pageHeight: " + pageHeight + " totalWidth: " + totalWidth);
         setMeasuredDimension(resolveSize(totalWidth, widthMeasureSpec), resolveSize(pageHeight, heightMeasureSpec));
+        //初始化页码指示器
+        initPageIndicator();
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         int count = getChildCount();
         for (int i = 0; i < count; ++i) {
-               View v = getChildAt(i);
-               final int childWidth = v.getMeasuredWidth();
-               final int childHeight = v.getMeasuredHeight();
-                SlideGroupParams lp = (SlideGroupParams) v.getLayoutParams();
-                v.layout(lp.left, lp.top, lp.left + childWidth, lp.top+childHeight);
+            View v = getChildAt(i);
+            final int childWidth = v.getMeasuredWidth();
+            final int childHeight = v.getMeasuredHeight();
+            SlideGroupParams lp = (SlideGroupParams) v.getLayoutParams();
+            v.layout(lp.left, lp.top, lp.left + childWidth, lp.top + childHeight);
+        }
+    }
+
+
+
+
+    protected PageIndicator.PageMarkerResources getPageIndicatorMarker(int pageIndex) {
+        return new PageIndicator.PageMarkerResources();
+    }
+
+    protected OnClickListener getPageIndicatorClickListener() {
+        return null;
+    }
+
+    public void initPageIndicator() {
+        ViewGroup parent = (ViewGroup) getParent();
+        if (mPageIndicator == null && mPageIndicatorViewId > -1) {
+            mPageIndicator = (PageIndicator) parent.findViewById(mPageIndicatorViewId);
+            mPageIndicator.removeAllMarkers(mAllowPagedViewAnimations);
+
+            ArrayList<PageIndicator.PageMarkerResources> markers =
+                    new ArrayList<PageIndicator.PageMarkerResources>();
+
+            for (int i = 0; i < totalPage; ++i) {
+                markers.add(getPageIndicatorMarker(i));
+            }
+            mPageIndicator.addMarkers(markers, mAllowPagedViewAnimations);
+            OnClickListener listener = getPageIndicatorClickListener();
+            if (listener != null) {
+                mPageIndicator.setOnClickListener(listener);
+            }
+            mPageIndicator.setContentDescription("");
+            mPageIndicator.setActiveMarker(0);
         }
     }
 
@@ -220,12 +263,6 @@ public class SlideGroup extends ViewGroup {
         return true;
     }
 
-
-
-    public boolean dispatchTouchEvent(MotionEvent ev) {
-        //Log.d(TAG,"dispatchTouchEvent:"+ev.getX());
-        return  super.dispatchTouchEvent(ev);
-    }
 
     @Override
     public void computeScroll() {
@@ -287,6 +324,23 @@ public class SlideGroup extends ViewGroup {
     }
 
 
+    /**
+     * 页码监听接口
+     */
+    public OnPageChangerListener onPageChangerListener;
+    public interface OnPageChangerListener {
+        void onPageChange(int item);
+    }
+
+
+
+    /**
+     * 单卡片点击监听接口
+     */
+    public OnItemClickListener onItemClickListener;
+    public interface OnItemClickListener {
+        void onClick(View v,int item);
+    }
 
     public interface disPathEvent {
          void onEvent(MotionEvent event);
@@ -296,6 +350,14 @@ public class SlideGroup extends ViewGroup {
     }
     public void setDisPathEvent(disPathEvent listener) {
         this.disPathEvent = listener;
+    }
+
+    public void setOnPageChangerListener(OnPageChangerListener listener) {
+        this.onPageChangerListener = listener;
+    }
+
+    public void setOnItemClick(OnItemClickListener listener) {
+        onItemClickListener = listener;
     }
 }
 

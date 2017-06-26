@@ -35,5 +35,7 @@
     <declare-styleable name="SlideGroup">
         <attr name="android:layout_gravity" />
         <attr name="android:orientation" />
+        <attr name="DragPageIndicator" format="reference" />
     </declare-styleable>
+
 </resources>

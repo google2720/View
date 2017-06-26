@@ -2,7 +2,9 @@ package com.view;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.View;
 
 import com.view.card.MusicCard;
 import com.view.card.NavCard;
@@ -24,7 +26,14 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main_viewgroup);
 
         SlideGroup slideGroup = (SlideGroup) findViewById(R.id.sl);
-        SlideGroupHelper slideGroupHelper = new SlideGroupHelper(slideGroup);
+
+        slideGroup.setOnItemClick(new SlideGroup.OnItemClickListener() {
+            @Override
+            public void onClick(View v, int item) {
+                Log.d("SlideGroupHelper", "v: " + v.getClass().getSimpleName() + "  LOCATION:"+item);
+            }
+        });
+       // SlideGroupHelper slideGroupHelper = new SlideGroupHelper(slideGroup);
 
 
         // View view = View.inflate(this, R.layout.test, null);

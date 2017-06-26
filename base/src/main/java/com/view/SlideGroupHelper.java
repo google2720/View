@@ -2,6 +2,8 @@ package com.view;
 
 import android.animation.LayoutTransition;
 import android.content.Context;
+import android.content.SharedPreferences;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.DragEvent;
 import android.view.GestureDetector;
@@ -12,7 +14,11 @@ import android.view.ViewGroup;
 import android.view.animation.Interpolator;
 import android.widget.Scroller;
 
-import com.socks.library.KLog;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 
 /**
  * Created by zhangjunjun on 2017/5/28.
@@ -51,7 +57,7 @@ public class SlideGroupHelper {
     private LayoutTransition mLayoutTransition;
 
     /**
-     * 松手交换完成标记
+     * 单次卡片交换完成标记
      */
     boolean isSwap=false;
     /**
@@ -59,6 +65,10 @@ public class SlideGroupHelper {
      */
     int firstLocation;
 
+    /**
+     * 所有卡片名字列表
+     */
+    ArrayList<String> cardList = new ArrayList<>();
 
     private static class ScrollInterpolator implements Interpolator {
         public ScrollInterpolator() {
@@ -117,7 +127,9 @@ public class SlideGroupHelper {
     private View.OnClickListener listener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            KLog.d("tag :" + v.getTag());
+            if(slideGroup.onItemClickListener!=null) {
+                slideGroup.onItemClickListener.onClick(v,v.getId());
+            }
         }
     };
 
@@ -152,14 +164,14 @@ public class SlideGroupHelper {
                     // 拖拽进某个控件后，保持
                     case DragEvent.ACTION_DRAG_LOCATION: {
                      //Log.d(TAG, "tag: " + view.getTag() + "  LOCATION");
-                        if(firstLocation!=(int) view.getTag() && !isDragAutoScroll && swapViewGroupChildren) {
+                        if(firstLocation!=(int) view.getId() && !isDragAutoScroll && swapViewGroupChildren) {
                               //Log.d(TAG, "tag: " + view.getTag() + "  LOCATION");
                               //Log.d(TAG,"dragState.view tag: "+dragState.view +"  LOCATION");
                             if (!isSwap && view != dragState.view) {
                                 isSwap = true;
                                 swapViewGroupChildren(viewGroup, view, dragState.view);
                             }
-                            firstLocation = (int) view.getTag();
+                            firstLocation = (int) view.getId();
                         }
 
                         break;
@@ -167,13 +179,14 @@ public class SlideGroupHelper {
 
                     // 推拽进入某个控件
                     case DragEvent.ACTION_DRAG_ENTERED:
-                      //Log.d(TAG,"tag: "+view.getTag() +"  ENTERED");
+                       // Log.d(TAG,"tag: "+view.getTag() +"  ENTERED");
                         isSwap = false;
                         break;
 
                     // 推拽进入某个控件，后在该控件内，释放。即把推拽控件放入另一个控件
                     case DragEvent.ACTION_DROP:
-
+                        //Log.d(TAG,"tag: "+view.getTag() +"  ACTION_DROP");
+                        updateCardLocation();
                         break;
                 }
                 return true;
@@ -189,6 +202,41 @@ public class SlideGroupHelper {
     }
 
 
+    public void updateCardLocation()
+    {
+        cardList.clear();
+        for (int i=0;i<slideGroup.getChildCount();i++) {
+            View view = slideGroup.getChildAt(i);
+            view.setId(i);
+            cardList.add(view.getTag()+"");
+        }
+
+        String cardConfig =  configToJson();
+        if(!TextUtils.isEmpty(cardConfig)){
+            SharedPreferences sp = mContext.getSharedPreferences("launcher", Context.MODE_PRIVATE);
+            SharedPreferences.Editor editor = sp.edit();
+            editor.putString("cardConfig",cardConfig);
+            editor.commit();
+        }
+    }
+
+
+    public String configToJson() {
+        String jsonResult = "";
+        JSONObject object = new JSONObject();
+        try {
+            JSONArray jsonarray = new JSONArray();
+            for (String s:cardList) {
+                jsonarray.put(s);
+            }
+            object.put("cardconfig", jsonarray);
+            jsonResult = object.toString();
+            Log.d(TAG,"jsonresult: "+jsonResult);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return jsonResult;
+    }
 
 
 
@@ -404,6 +452,11 @@ public class SlideGroupHelper {
 
     private void moveCurr(int page,float velocityX)
     {
+        slideGroup.mPageIndicator.setActiveMarker(page);
+        if (slideGroup.onPageChangerListener != null) {
+            slideGroup.onPageChangerListener.onPageChange(page);
+        }
+
         int distance = page * pageWidth() - getScrollX();
         mCurrentPage = page;
         if (!mScroller.isFinished()) {

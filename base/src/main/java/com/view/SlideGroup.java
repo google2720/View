@@ -43,7 +43,7 @@ public class SlideGroup extends ViewGroup {
     /**
      * 卡片高度
      */
-    int cardHeight = 320;
+    int cardHeight = 392;
 
     /**
      * 每页列数
@@ -53,7 +53,7 @@ public class SlideGroup extends ViewGroup {
     /**
      * 每页行数
      */
-    int pageLine = 2;
+    int pageLine = 1;
 
     /**
      * 每页卡片数
@@ -74,6 +74,11 @@ public class SlideGroup extends ViewGroup {
      * 总页数
      */
     int totalPage;
+
+    /**
+     * 当前在第几页
+     */
+     int mCurrentPage;
 
     private disPathEvent disPathEvent;
 
@@ -97,8 +102,11 @@ public class SlideGroup extends ViewGroup {
         super(context, attrs, defStyleAttr);
         final TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.SlideGroup);
         mPageIndicatorViewId = a.getResourceId(R.styleable.SlideGroup_DragPageIndicator, -1);
-        setCardWidth(240);
-        setCardHeight(392);
+        pageRow = a.getInt(R.styleable.SlideGroup_pageRow, 4);
+        pageLine = a.getInt(R.styleable.SlideGroup_pageLine, 1);
+        cardWidth = a.getInt(R.styleable.SlideGroup_cardWidth, 240);
+        cardHeight = a.getInt(R.styleable.SlideGroup_cardHeight, 392);
+        pageNumber = pageLine * pageRow;
         new SlideGroupHelper(this);
     }
 
@@ -109,7 +117,6 @@ public class SlideGroup extends ViewGroup {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-
         pageWidth = MeasureSpec.getSize(widthMeasureSpec);
         pageHeight = MeasureSpec.getSize(heightMeasureSpec);
 
@@ -160,7 +167,7 @@ public class SlideGroup extends ViewGroup {
         for (int i = 0; i < count; ++i) {
             View v = getChildAt(i);
             v.setId(i);
-            v.setTag(v.getClass().getSimpleName());
+            v.setTag(v.getClass().getName());
             measureChild(v, widthMeasureSpec, heightMeasureSpec);
             SlideGroupParams lp = (SlideGroupParams) v.getLayoutParams();
             lp.width = cardWidth;
@@ -251,6 +258,14 @@ public class SlideGroup extends ViewGroup {
         this.cardWidth = cardWidth;
     }
 
+    public int getPageNumber() {
+        return pageNumber;
+    }
+
+    public int getCurrentPage() {
+        return mCurrentPage;
+    }
+
     public void setCardHeight(int cardHeight) {
         this.cardHeight = cardHeight;
     }
@@ -289,6 +304,8 @@ public class SlideGroup extends ViewGroup {
     }
 
 
+
+
     public static class SlideGroupParams extends MarginLayoutParams {
         public int left = 0;
         public int top = 0;
@@ -312,14 +329,14 @@ public class SlideGroup extends ViewGroup {
     }
 
     @Override
-    protected android.view.ViewGroup.LayoutParams generateDefaultLayoutParams() {
+    protected LayoutParams generateDefaultLayoutParams() {
         return new SlideGroupParams(LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT);
     }
 
    @Override
-    protected android.view.ViewGroup.LayoutParams generateLayoutParams(
-            android.view.ViewGroup.LayoutParams p) {
+    protected LayoutParams generateLayoutParams(
+            LayoutParams p) {
         return new SlideGroupParams(p);
     }
 
@@ -339,7 +356,7 @@ public class SlideGroup extends ViewGroup {
      */
     public OnItemClickListener onItemClickListener;
     public interface OnItemClickListener {
-        void onClick(View v,int item);
+        void onClick(View v, int item);
     }
 
     public interface disPathEvent {

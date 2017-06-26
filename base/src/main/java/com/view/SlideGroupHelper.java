@@ -22,6 +22,7 @@ import java.util.ArrayList;
 
 /**
  * Created by zhangjunjun on 2017/5/28.
+ * 处理SlideGroup的滑动与拖拽
  */
 
 public class SlideGroupHelper {
@@ -34,7 +35,6 @@ public class SlideGroupHelper {
     private int downX, upX;
     private GestureDetector mGestureDetector;
     private GestureListener mGestureListener;
-    private int mCurrentPage = 0;
     /**
      * 快速滑动标记
      */
@@ -195,15 +195,16 @@ public class SlideGroupHelper {
         view.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View view) {
-                view.startDrag(null, new View.DragShadowBuilder(view), new DragState(view), 0);
+                SlideGroupShadowBuilder shadowBuilder = new SlideGroupShadowBuilder(view);
+                shadowBuilder.setOffset(longX+slideGroup.getCurrentPage()*pageWidth(),longY);
+                view.startDrag(null, shadowBuilder, new DragState(view), 0);
                 return true;
             }
         });
     }
 
 
-    public void updateCardLocation()
-    {
+    public void updateCardLocation() {
         cardList.clear();
         for (int i=0;i<slideGroup.getChildCount();i++) {
             View view = slideGroup.getChildAt(i);
@@ -275,6 +276,7 @@ public class SlideGroupHelper {
 
 
     int interceptX, interceptEndX;
+    int longX,longY;
     private SlideGroup.disPathEvent disPathEvent = new SlideGroup.disPathEvent() {
 
         @Override
@@ -309,6 +311,9 @@ public class SlideGroupHelper {
             boolean isIntercept = false;
             switch (ev.getAction()) {
                 case MotionEvent.ACTION_DOWN:
+                    longX = (int) ev.getX();
+                    longY = (int) ev.getY();
+
                     isIntercept = !mScroller.isFinished();
                     interceptX = (int) ev.getX();
                     break;
@@ -413,7 +418,7 @@ public class SlideGroupHelper {
                 } else if (upX - downX > pageWidth() / 2) {
                     movePrev();
                 } else {
-                    moveCurr(mCurrentPage);
+                    moveCurr(slideGroup.mCurrentPage);
                 }
             }
             isFling = false;
@@ -423,31 +428,31 @@ public class SlideGroupHelper {
 
 
     private void movePrev() {
-        if (mCurrentPage > 0) {
-            mCurrentPage--;
+        if (slideGroup.mCurrentPage > 0) {
+            slideGroup.mCurrentPage--;
         }
-        moveCurr(mCurrentPage);
+        moveCurr(slideGroup.mCurrentPage);
     }
 
     private void moveNext() {
-        if (mCurrentPage < totalPage() - 1) {
-            mCurrentPage++;
+        if (slideGroup.mCurrentPage < totalPage() - 1) {
+            slideGroup.mCurrentPage++;
         }
-        moveCurr(mCurrentPage);
+        moveCurr(slideGroup.mCurrentPage);
     }
 
     private void movePrev(float velocityX) {
-        if (mCurrentPage > 0) {
-            mCurrentPage--;
+        if (slideGroup.mCurrentPage > 0) {
+            slideGroup.mCurrentPage--;
         }
-        moveCurr(mCurrentPage,velocityX);
+        moveCurr(slideGroup.mCurrentPage,velocityX);
     }
 
     private void moveNext(float velocityX) {
-        if (mCurrentPage < totalPage() - 1) {
-            mCurrentPage++;
+        if (slideGroup.mCurrentPage < totalPage() - 1) {
+            slideGroup.mCurrentPage++;
         }
-        moveCurr(mCurrentPage,velocityX);
+        moveCurr(slideGroup.mCurrentPage,velocityX);
     }
 
     private void moveCurr(int page,float velocityX)
@@ -458,7 +463,7 @@ public class SlideGroupHelper {
         }
 
         int distance = page * pageWidth() - getScrollX();
-        mCurrentPage = page;
+        slideGroup.mCurrentPage = page;
         if (!mScroller.isFinished()) {
             mScroller.abortAnimation();
         }
@@ -503,6 +508,10 @@ public class SlideGroupHelper {
 
     private int pageWidth() {
         return slideGroup.pageWidth;
+    }
+
+    private int pageHeight() {
+        return slideGroup.pageHeight;
     }
 
 

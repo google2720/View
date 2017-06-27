@@ -48,7 +48,7 @@ public class SlideGroup extends ViewGroup {
     /**
      * 每页列数
      */
-    int pageRow = 4;
+    int pageRow = 5;
 
     /**
      * 每页行数
@@ -102,12 +102,12 @@ public class SlideGroup extends ViewGroup {
         super(context, attrs, defStyleAttr);
         final TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.SlideGroup);
         mPageIndicatorViewId = a.getResourceId(R.styleable.SlideGroup_DragPageIndicator, -1);
-        pageRow = a.getInt(R.styleable.SlideGroup_pageRow, 4);
+        pageRow = a.getInt(R.styleable.SlideGroup_pageRow, 5);
         pageLine = a.getInt(R.styleable.SlideGroup_pageLine, 1);
         cardWidth = a.getInt(R.styleable.SlideGroup_cardWidth, 240);
         cardHeight = a.getInt(R.styleable.SlideGroup_cardHeight, 392);
         pageNumber = pageLine * pageRow;
-        new SlideGroupHelper(this);
+        new SlideGroupHelperII(this);
     }
 
 
